@@ -139,7 +139,31 @@ async function generateFix(analysisId, issueId) {
 }
 
 async function runSingleAttempt({ attempt, sessionId, analysis, issue, feedback }) {
-  const context = buildFixContext(analysis, issue);
+  const { payload: context, meta } = buildFixContext(analysis, issue);
+
+  // Telemetry about what we collected, so missing source-under-test
+  // for a dynamic test failure is visible without a debugger.
+  logger.info('ai_fix_context_collected', {
+    sessionId, attempt,
+    fileCount: context.relevantFiles.length,
+    failingTestPath: meta.failingTestPath,
+    sourceUnderTestCount: meta.sourceUnderTestPaths.length,
+  });
+  if (issue.type === 'dynamic_test_failed') {
+    if (meta.sourceUnderTestPaths.length > 0) {
+      logger.info('ai_fix_source_under_test_resolved', {
+        sessionId, attempt,
+        failingTestPath: meta.failingTestPath,
+        sources: meta.sourceUnderTestPaths,
+      });
+    } else {
+      logger.warn('ai_fix_source_under_test_missing', {
+        sessionId, attempt,
+        failingTestPath: meta.failingTestPath,
+        issueId: issue.id,
+      });
+    }
+  }
 
   let plan;
   try {
@@ -193,6 +217,24 @@ async function runSingleAttempt({ attempt, sessionId, analysis, issue, feedback 
         signals: weakening.signals,
       },
     };
+  }
+
+  // For dynamic_test_failed, require at least one non-test file in the
+  // changes whenever the context resolved a source_under_test. This
+  // covers the case where detectTestWeakening did not catch it (e.g.
+  // the patch also touches package.json so "every change is a test
+  // file" is false but the test file is still the primary target).
+  if (issue.type === 'dynamic_test_failed' && meta.sourceUnderTestPaths.length > 0) {
+    const touchesSource = normalised.changes.some((c) => !isTestFile(c.file));
+    if (!touchesSource) {
+      return {
+        record: {
+          attempt, status: 'rejected',
+          reason: 'patch_weakens_tests',
+          signals: ['no_source_under_test_modified'],
+        },
+      };
+    }
   }
 
   const fixId = 'fix_' + crypto.randomBytes(8).toString('hex');
@@ -349,8 +391,8 @@ function composeFeedback(record) {
         'Do not modify tests unless the issue is explicitly caused by an incorrect test.',
         'Preserve existing assertions and imports. Do not add .skip / .only / process.exit(0) or other bypasses.',
         'Do not change "test" or "build" scripts in package.json to trivial commands.',
-        'For dynamic_test_failed issues, fix the implementation source file, not the test.',
-        'If you cannot fix without editing tests, return can_fix: false.',
+        'For dynamic_test_failed issues, fix the implementation source file (a file with role "source_under_test"), not the test.',
+        'If no source_under_test files are present in the context, return can_fix: false.',
       ].join(' ');
 
     case 'verification_failed':
