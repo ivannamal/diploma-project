@@ -1,0 +1,18 @@
+module.exports = {
+  PORT: parseInt(process.env.PORT, 10) || 3000,
+  GIT_CLONE_TIMEOUT_MS: 90_000,
+  MAX_FILE_SIZE_BYTES: 1_000_000, // skip files larger than 1 mb
+  MAX_TOTAL_FILES: 5_000,
+
+  DOCKER_TIMEOUT_MS: 600_000,
+  DOCKER_OUTPUT_LIMIT_BYTES: 256_000, // 256 kb stdout/stderr cap
+  DOCKER_MEMORY: '512m',
+  DOCKER_CPUS: '1',
+  DOCKER_PIDS: '256',
+  HTTP_HEALTH_CHECK_PORTS_NODE: [3000, 5173, 8080],
+  HTTP_HEALTH_CHECK_PORTS_PY: [5000],
+  HTTP_HEALTH_CHECK_TIMEOUT_MS: 30_000,
+
+  // for state
+  ANALYSIS_RETENTION_MS: 60 * 60 * 1000, // 1 hour
+};

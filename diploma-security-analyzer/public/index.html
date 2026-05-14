@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Security Analyzer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+
+  </header>
+
+  <main class="container">
+    <section class="card analyze-card">
+      <h2>Analyze a GitHub repository</h2>
+
+
+      <div class="row">
+        <input
+          id="repoUrl"
+          type="text"
+          autocomplete="off"
+          placeholder="https://github.com/user/repo"
+          spellcheck="false" />
+        <button id="analyzeBtn" class="btn primary">Analyze</button>
+        <button id="analyzeOpenaiBtn" class="btn primary openai">Analyze with OpenAI agents</button>
+        <button id="watchBtn" class="btn secondary">Watch repository</button>
+        <button id="resetBtn" class="btn secondary" hidden>Reset View</button>
+      </div>
+      <div id="modeLabel" class="mode-label muted small" hidden></div>
+      <div id="watchStatus" class="watch-status small"></div>
+
+      <div id="progress" class="progress" hidden>
+        <span class="spinner"></span>
+        <span id="progressText">Cloning repository and running analyzers...</span>
+      </div>
+      <div id="errorBox" class="error-box" hidden></div>
+    </section>
+
+    <section class="card watched-card">
+      <h2>Watched repositories</h2>
+      <p class="muted small">
+        Watched repositories are polled every 2 minutes for open pull requests.
+        When a pull request is new or its head commit changed since the last check,
+        the standard analysis pipeline runs automatically.
+      </p>
+      <div class="row">
+        <button id="checkNowBtn" class="btn secondary">Check pull requests now</button>
+        <span id="pollStatus" class="poll-status small"></span>
+      </div>
+      <ul id="watchList" class="watch-list"></ul>
+    </section>
+
+    <section class="card recent-card">
+      <h2>Recent analyses</h2>
+      <p class="muted small">
+        Manual and polling-triggered analyses. Entries are evicted from
+        memory after one hour.
+      </p>
+      <div class="row">
+        <button id="refreshRecentBtn" class="btn secondary small">Refresh</button>
+        <span id="recentStatus" class="recent-status small"></span>
+      </div>
+      <ul id="recentList" class="recent-list"></ul>
+    </section>
+
+    <section id="summary" class="summary-grid" hidden>
+      <div class="summary-card decision" id="decisionCard">
+        <span class="label">Final decision</span>
+        <span id="sumDecision" class="value">—</span>
+        <span id="sumDecisionReason" class="muted small"></span>
+      </div>
+      <div class="summary-card" id="riskCard">
+        <span class="label">Risk level</span>
+        <span id="sumRisk" class="value">—</span>
+      </div>
+      <div class="summary-card">
+        <span class="label">Checked files</span>
+        <span id="sumFiles" class="value">—</span>
+      </div>
+      <div class="summary-card">
+        <span class="label">Issues</span>
+        <span id="sumIssues" class="value">—</span>
+      </div>
+      <div class="summary-card">
+        <span class="label">Fixable issues</span>
+        <span id="sumFixable" class="value">—</span>
+      </div>
+      <div class="summary-card">
+        <span class="label">Dynamic analysis</span>
+        <span id="sumDynamic" class="value">—</span>
+      </div>
+    </section>
+
+    <section id="agentsSection" class="card" hidden>
+      <h2>Agent reports</h2>
+      <div class="agents-grid">
+        <div class="agent-block">
+          <h3>Security agent</h3>
+          <div id="agentSecurity" class="agent-content"></div>
+        </div>
+        <div class="agent-block">
+          <h3>Build &amp; test agent</h3>
+          <div id="agentBuild" class="agent-content"></div>
+        </div>
+        <div class="agent-block">
+          <h3>Decision agent</h3>
+          <div id="agentDecision" class="agent-content"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="issuesSection" hidden>
+      <h2>Issues</h2>
+      <div id="issuesContainer"></div>
+    </section>
+
+    <section id="openaiSection" class="card" hidden>
+      <h2>OpenAI agent analysis</h2>
+      <div id="openaiModel" class="muted small"></div>
+      <div id="openaiError" class="error-box" hidden></div>
+      <div class="agents-grid openai-agents">
+        <div class="agent-block">
+          <h3>Security Analysis Agent</h3>
+          <div id="openaiSecurity" class="agent-content"></div>
+        </div>
+        <div class="agent-block">
+          <h3>Build &amp; Test Analysis Agent</h3>
+          <div id="openaiBuild" class="agent-content"></div>
+        </div>
+        <div class="agent-block openai-decision-block">
+          <h3>Decision Agent</h3>
+          <div id="openaiDecision" class="agent-content"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="diffSection" class="card" hidden>
+      <h2>Last applied fix</h2>
+      <div id="diffMeta" class="muted"></div>
+      <pre id="diffViewer" class="diff"></pre>
+    </section>
+
+    <section id="rawSection" class="card" hidden>
+      <details>
+        <summary>Raw report (JSON)</summary>
+        <pre id="rawJson" class="diff"></pre>
+      </details>
+    </section>
+  </main>
+
+
+  <template id="issueTemplate">
+    <article class="issue">
+      <header class="issue-head">
+        <span class="badge severity">low</span>
+        <span class="badge status">open</span>
+        <span class="badge source">static</span>
+        <span class="issue-type"></span>
+      </header>
+      <div class="issue-body">
+        <div class="issue-file"></div>
+        <div class="issue-message"></div>
+        <div class="issue-recommendation muted"></div>
+        <div class="issue-details" hidden></div>
+        <div class="ai-fix-panel" hidden></div>
+      </div>
+      <footer class="issue-actions">
+        <button class="btn small details-btn">View details</button>
+        <button class="btn small primary fix-btn">Apply fix</button>
+        <button class="btn small ai-fix-btn" hidden>Generate AI fix</button>
+        <button class="btn small secondary ignore-btn">Ignore</button>
+      </footer>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>

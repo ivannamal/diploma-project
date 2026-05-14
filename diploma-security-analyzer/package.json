@@ -1,0 +1,18 @@
+{
+  "name": "diploma-security-analyzer",
+  "version": "1.0.0",
+  "description": "Automated System for Secure Building and Deployment of Web Applications Using Agent-Based Technologies.",
+  "private": true,
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}
