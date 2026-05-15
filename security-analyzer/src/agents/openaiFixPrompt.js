@@ -1,13 +1,6 @@
-// prompts and context-builder for the AI-assisted verified-autofix flow.
-// the system prompt forces strict json, minimal changes, and a small set
-// of forbidden tricks. the context builder gathers the failing test
-// file, the source files it imports (so the agent can fix the
-// implementation, not the test), and only the most relevant manifests.
-
 const fs = require('fs');
 const path = require('path');
 
-// Per-file and total caps for the OpenAI payload.
 const MAX_FILES = 10;
 const MAX_FILE_BYTES = 30 * 1024;
 const MAX_TOTAL_BYTES = 200 * 1024;
@@ -109,7 +102,6 @@ ${feedback.trim()}`;
   return s;
 }
 
-// ---------- File reading helpers ----------
 
 function safeReadText(filePath, limit = MAX_FILE_BYTES) {
   try {
@@ -119,7 +111,7 @@ function safeReadText(filePath, limit = MAX_FILE_BYTES) {
     try {
       const buf = Buffer.alloc(Math.min(stat.size, limit));
       fs.readSync(fd, buf, 0, buf.length, 0);
-      // Reject binary-looking files (NUL bytes).
+      // reject binary-looking files (NUL bytes)
       if (buf.indexOf(0) !== -1) return null;
       const text = buf.toString('utf8');
       const truncated = stat.size > limit;
@@ -132,10 +124,7 @@ function safeReadText(filePath, limit = MAX_FILE_BYTES) {
   }
 }
 
-// ---------- Failure-log parsing ----------
 
-// Extract candidate test files, stack-trace files, assertion messages
-// and function names from captured stdout/stderr.
 function parseFailingTestFromOutput(stdoutTail, stderrTail) {
   const text = `${stdoutTail || ''}\n${stderrTail || ''}`;
   const testFiles = new Set();
@@ -157,14 +146,11 @@ function parseFailingTestFromOutput(stdoutTail, stderrTail) {
     assertionMessages.push(m[0].trim());
     if (assertionMessages.length >= 8) break;
   }
-  // Symbol from "TypeError: X is not a function" / "ReferenceError: X is not defined"
   for (const m of text.matchAll(/\b(?:TypeError|ReferenceError|AssertionError)[:\s][^\n]*?\b([A-Za-z_][\w]*)\b/g)) {
     functionNames.add(m[1]);
     if (functionNames.size >= 12) break;
   }
 
-  // Pick the most plausible failing test path: prefer files matching
-  // test/spec naming, else first stack file matching, else first FAIL.
   let testFile = null;
   for (const f of testFiles) {
     if (TEST_FILE_RE.test(f) || TEST_PATH_RE.test('/' + f)) { testFile = f; break; }
@@ -184,16 +170,13 @@ function parseFailingTestFromOutput(stdoutTail, stderrTail) {
   };
 }
 
-// Normalise a path captured from logs into a repo-relative path or null.
 function normalizeRepoRel(p, repoPath) {
   if (!p || typeof p !== 'string') return null;
   let n = p.replace(/\\/g, '/').trim();
-  // Strip the /work/ prefix from in-container paths.
   n = n.replace(/^\/work\//, '');
   n = n.replace(/^\.\//, '');
   if (n.startsWith('/')) return null;          // absolute outside /work
   if (n.split('/').some((s) => s === '..')) return null;
-  // Confirm the file actually exists in the repo.
   try {
     const stat = fs.statSync(path.join(repoPath, n));
     if (!stat.isFile()) return null;
@@ -203,7 +186,6 @@ function normalizeRepoRel(p, repoPath) {
   return n;
 }
 
-// ---------- Import parsing & resolution ----------
 
 function parseLocalImports(content) {
   if (!content) return [];
@@ -234,7 +216,7 @@ function resolveImport(fromRelFile, importPath, repoPath) {
     } catch { return null; }
   };
 
-  // Already has an extension?
+  // already has an extension?
   if (path.extname(base)) {
     return tryFile(base);
   }
@@ -250,12 +232,11 @@ function resolveImport(fromRelFile, importPath, repoPath) {
   return null;
 }
 
-// ---------- Public: build context for the OpenAI fix call ----------
 
-// Returns { payload, meta }.
-//   payload — sent to OpenAI as JSON.
-//   meta    — { failingTestPath, sourceUnderTestPaths } for the
-//             service layer (logging + guardrails).
+// returns { payload, meta }
+//   payload = sent to OpenAI as JSON.
+//   meta    - { failingTestPath, sourceUnderTestPaths } for the
+//             service layer (logging + guardrails)
 function buildFixContext(analysis, issue) {
   const repoPath = analysis.repoPath;
   const payload = {
@@ -308,15 +289,13 @@ function buildFixContext(analysis, issue) {
     return true;
   };
 
-  // 1) The file the issue points at, if any.
   if (issue.file) {
     const isFailingTest = issue.type === 'dynamic_test_failed' && isTestFile(issue.file);
     addFile(issue.file, isFailingTest ? 'failing_test' : 'issue_target');
     if (isFailingTest) meta.failingTestPath = issue.file;
   }
 
-  // 2) For dynamic test failures, parse logs to find the failing test
-  //    and resolve its local imports as source_under_test files.
+
   if (issue.type === 'dynamic_test_failed') {
     const details = issue.details || {};
     const parsed = parseFailingTestFromOutput(details.stdoutTail, details.stderrTail);
@@ -332,7 +311,6 @@ function buildFixContext(analysis, issue) {
     if (testRel) {
       meta.failingTestPath = testRel;
       addFile(testRel, 'failing_test');
-      // Read the test file and resolve its local imports.
       const testFull = path.join(repoPath, testRel);
       let testContent = null;
       try { testContent = fs.readFileSync(testFull, 'utf8'); } catch { /* ignore */ }
@@ -348,8 +326,6 @@ function buildFixContext(analysis, issue) {
       }
     }
 
-    // Stack-trace files that aren't tests are also useful as
-    // source_under_test candidates.
     for (const sf of parsed.stackFiles) {
       const norm = normalizeRepoRel(sf, repoPath);
       if (!norm || isTestFile(norm)) continue;
@@ -360,7 +336,6 @@ function buildFixContext(analysis, issue) {
     }
   }
 
-  // 3) Type-specific extras.
   const type = issue.type || '';
   if (type.startsWith('ci_')) {
     for (const wf of listWorkflows(repoPath)) addFile(wf, 'ci_workflow');
@@ -372,13 +347,11 @@ function buildFixContext(analysis, issue) {
     addFile('.gitignore', 'project_metadata');
   }
 
-  // 4) Always include package.json (small, broadly useful).
   addFile('package.json', 'project_metadata');
   if (analysis.dynamicAnalysis?.kind === 'python') {
     addFile('requirements.txt', 'project_metadata');
   }
-  // package-lock.json is intentionally NOT included as full content —
-  // it would dominate the token budget. Expose it as metadata only.
+
   if (existsRel(repoPath, 'package-lock.json')) {
     payload.relevantFiles.push({
       path: 'package-lock.json',
@@ -440,7 +413,6 @@ module.exports = {
   SYSTEM_PROMPT,
   userPrompt,
   buildFixContext,
-  // exposed for tests
   parseFailingTestFromOutput,
   parseLocalImports,
   resolveImport,

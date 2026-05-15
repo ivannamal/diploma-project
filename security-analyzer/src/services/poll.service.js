@@ -1,11 +1,5 @@
-// pulls the github rest api every WATCH_POLL_INTERVAL_MS (2 min)
-// for every repository in the watch list, finds open pull requests that
-// are new or whose head.sha has changed since the last check, and runs
-// the standard local analysis pipeline for each of them
-//
-// seen PRs are tracked in-memory:
-//   key = "owner/repo#<prNumber>"
-//   value = headSha last analyzed
+
+
 
 const watchService = require('./watch.service');
 const analysisService = require('./analysis.service');

@@ -1,5 +1,5 @@
 // sends the local analysis result to the LLM
-// and normalizes LLM's answer to the JSON object.
+// and normalizes LLM's answer to the JSON object
 
 const openaiClient = require('../services/openai.client');
 const { SYSTEM_PROMPT, userPrompt, buildSummary } = require('./openaiPrompt');

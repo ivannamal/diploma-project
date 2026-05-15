@@ -1,5 +1,5 @@
 //the summary doesn't include raw file contents
-//to never accidentally send big payload to LLM
+//to never send big payload to LLM
 
 const SYSTEM_PROMPT = `You are a security and deployment review assistant.
 

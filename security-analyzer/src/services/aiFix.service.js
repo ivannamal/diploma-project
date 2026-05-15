@@ -1,18 +1,3 @@
-// ai-assisted verified autofix
-//
-// pipeline for one call:
-//   1. look up analysis + issue in stateService
-//   2. build a compact context for openAI
-//   3. ask OpenAI for a "fix plan" (strict json)
-//   4. validate the plan against the safety allowlist
-//   5. copy the analysis repo into a separate fix workspace
-//   6. apply the plan inside the workspace
-//   7. re-run static analysis (and dynamic if needed) on the workspace
-//   8. compare against the original analysis
-//   9. if verification passes, store a verified fix; otherwise store an
-//      attempted-but-failed fix. workspace is always cleaned up
-
-
 const crypto = require('crypto');
 const fs = require('fs');
 const fsp = require('fs/promises');
@@ -141,8 +126,9 @@ async function generateFix(analysisId, issueId) {
 async function runSingleAttempt({ attempt, sessionId, analysis, issue, feedback }) {
   const { payload: context, meta } = buildFixContext(analysis, issue);
 
-  // Telemetry about what we collected, so missing source-under-test
-  // for a dynamic test failure is visible without a debugger.
+
+
+
   logger.info('ai_fix_context_collected', {
     sessionId, attempt,
     fileCount: context.relevantFiles.length,
@@ -219,11 +205,7 @@ async function runSingleAttempt({ attempt, sessionId, analysis, issue, feedback 
     };
   }
 
-  // For dynamic_test_failed, require at least one non-test file in the
-  // changes whenever the context resolved a source_under_test. This
-  // covers the case where detectTestWeakening did not catch it (e.g.
-  // the patch also touches package.json so "every change is a test
-  // file" is false but the test file is still the primary target).
+
   if (issue.type === 'dynamic_test_failed' && meta.sourceUnderTestPaths.length > 0) {
     const touchesSource = normalised.changes.some((c) => !isTestFile(c.file));
     if (!touchesSource) {

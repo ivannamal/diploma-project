@@ -1,15 +1,11 @@
 const C = require('./constants');
 
-// Persistent npm cache volume — Docker auto-creates this named volume on
-// first use so repeated analyses don't re-download the same tarballs.
+// persistent npm cache volume
 const NPM_CACHE_VOLUME = process.env.ANALYZER_NPM_CACHE_VOLUME || 'analyzer_npm_cache';
 const WORK_TMPFS_SIZE = process.env.ANALYZER_WORK_TMPFS_SIZE || '2g';
 const TMP_TMPFS_SIZE = process.env.ANALYZER_TMP_TMPFS_SIZE || '256m';
 const MEMORY_LIMIT = process.env.ANALYZER_MEMORY_LIMIT || '2g';
 
-// Build a hardened `docker run ...` argument list.
-// The repo is mounted read-only; the container copies it into a tmpfs /work
-// before installing/building. Docker socket is intentionally never mounted.
 function buildRunArgs({ image, repoPath, name, command, network = 'bridge' }) {
   return [
     'run',

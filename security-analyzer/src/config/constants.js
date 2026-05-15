@@ -1,7 +1,7 @@
 module.exports = {
   PORT: parseInt(process.env.PORT, 10) || 3000,
   GIT_CLONE_TIMEOUT_MS: 90_000,
-  MAX_FILE_SIZE_BYTES: 1_000_000, // skip files larger than 1 mb
+  MAX_FILE_SIZE_BYTES: 1_000_000,
   MAX_TOTAL_FILES: 5_000,
 
   DOCKER_TIMEOUT_MS: 600_000,

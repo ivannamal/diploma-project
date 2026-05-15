@@ -25,7 +25,6 @@ function describeAutofix(type) {
 }
 
 function manualHint(issue) {
-  // defaults for known categories.
   if (issue.type && issue.type.startsWith('secret_')) {
     return 'Auto-replacing secrets is not safe. Move the value to an environment variable, rotate the credential, and remove it from history.';
   }

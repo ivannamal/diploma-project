@@ -731,7 +731,6 @@
       const result = await api('/api/watch');
       renderWatchList(result.watched || []);
     } catch (err) {
-      // leave the list as it was; surface a small notice
       setWatchStatus(`Could not load watch list: ${err.message}`, 'error');
     }
   }
