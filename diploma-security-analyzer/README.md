@@ -2,16 +2,14 @@
 
 Automated System for Secure Building and Deployment of Web Applications Using
 Agent-Based Technologies. The system analyses a public GitHub repository
-**before** deployment, runs static security analysis, runs dynamic checks
+before deployment, runs static security analysis, runs dynamic checks
 inside an isolated Docker container, and uses cooperating agents to decide
 whether the repository can be deployed, requires manual review, or must be
 blocked.
 
 If safe and obvious problems are detected, the user can apply a one-click fix
-that mutates **only the temporary cloned copy** of the repository and shows the
-diff in the UI. **Nothing is ever pushed back to GitHub.**
-
----
+that mutates only the temporary cloned copy of the repository and shows the
+diff in the UI. Nothing is ever pushed back to GitHub.
 
 ## Architecture
 
@@ -178,7 +176,7 @@ the UI shows a manual remediation plan instead.
 The "Analyze with OpenAI agents" button in the UI calls
 `POST /api/analyze/openai`. The server still runs the full local pipeline
 first (clone → static → dynamic in Docker → local agents), then sends a
-**compact** JSON summary (no raw file contents; stdout/stderr tails are
+compact JSON summary (no raw file contents; stdout/stderr tails are
 truncated) to OpenAI. The model is prompted to respond as three
 cooperating agents (Security / Build-and-Test / Decision) and to return
 a structured JSON object that is schema-checked and normalised
@@ -243,7 +241,7 @@ Open http://localhost:3000 and paste a GitHub repository URL.
 
 ### Windows note
 
-If your Windows username contains non-ASCII characters, Docker Desktop may
+If Windows username contains non-ASCII characters, Docker Desktop may
 refuse to mount paths under `C:\Users\<name>\AppData\Local\Temp`. The server
 defaults the analysis temp root to `C:\analyzer-tmp` on Windows. Override
 with the `ANALYZER_TMP_ROOT` environment variable if needed.
