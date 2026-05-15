@@ -245,3 +245,7 @@ If Windows username contains non-ASCII characters, Docker Desktop may
 refuse to mount paths under `C:\Users\<name>\AppData\Local\Temp`. The server
 defaults the analysis temp root to `C:\analyzer-tmp` on Windows. Override
 with the `ANALYZER_TMP_ROOT` environment variable if needed.
+
+
+## Classes diagram:
+<img width="7698" height="5732" alt="image" src="https://github.com/user-attachments/assets/6a981bca-de50-4c15-b8f7-f1d70ced406c" />
