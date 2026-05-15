@@ -16,33 +16,33 @@ diff in the UI. Nothing is ever pushed back to GitHub.
 ```
 diploma-security-analyzer/
   src/
-    server.js                # HTTP server bootstrap
-    app.js                   # Express app, routes, static serving
+    server.js                # запуск HTTP-сервера
+    app.js                   # Express-застосунок, маршрути, обслуговування статичних файлів
     config/
-      constants.js           # Limits, timeouts, ports
-      docker.js              # Hardened docker run argument builder
-    routes/                  # Express routers per resource
-    controllers/             # Request handlers (thin, delegate to services)
+      constants.js           # обмеження, час очікування, порти
+      docker.js              # формування аргументів для безпечного запуску Docker
+    routes/                  # маршрути Express для окремих ресурсів
+    controllers/             # обробники запитів, які передають логіку службам
     services/
-      repository.service.js  # validate URL + git clone --depth 1
-      analysis.service.js    # orchestrates static + dynamic + agents
-      report.service.js      # builds API response payloads
-      fix.service.js         # routes a fix to the right fixer
-      state.service.js       # in-memory analysis state + cleanup
+      repository.service.js  # перевірка URL та клонування git clone --depth 1
+      analysis.service.js    # координує статичний аналіз, динамічний аналіз та агентів
+      report.service.js      # формує відповіді програмного інтерфейсу
+      fix.service.js         # передає виправлення до відповідного модуля виправлення
+      state.service.js       # стан аналізу в пам’яті та очищення
     analyzers/
-      static/                # secrets, Dockerfile, CI, package.json scans
-      dynamic/               # docker-isolated build/test/start checks
+      static/                # пошук секретів, аналіз Dockerfile, CI та package.json
+      dynamic/               # ізольовані Docker-перевірки збірки, тестування та запуску
     agents/
-      securityAgent.js       # security_status + risk_level
+      securityAgent.js       # security_status та risk_level
       buildTestAgent.js      # pipeline_status
-      fixSuggestionAgent.js  # adds fix metadata to each issue
-      decisionAgent.js       # final decision: deploy/manual_review/block
-    fixers/                  # one module per safe auto-fix strategy
-    utils/                   # command runner, file walker, diff, severity
+      fixSuggestionAgent.js  # додає дані про виправлення до кожної проблеми
+      decisionAgent.js       # фінальне рішення: deploy/manual_review/block
+    fixers/                  # окремий модуль для кожної стратегії безпечного автоматичного виправлення
+    utils/                   # запуск команд, обхід файлів, різниця змін, рівень критичності
   public/
-    index.html               # dashboard
+    index.html               # панель керування
     style.css
-    app.js                   # frontend logic
+    app.js                   # логіка клієнтської частини
 ```
 
 ## How static analysis works
