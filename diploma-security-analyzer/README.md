@@ -51,21 +51,21 @@ diploma-security-analyzer/
 `dist`, `build`, `coverage`, `.next`, `.cache`, `vendor`, lock files, binary
 and oversized files) and dispatches each file to four scanners:
 
-- **secretScanner.js** — committed `.env*` files, OpenAI keys, GitHub PATs,
+- secretScanner.js — committed `.env*` files, OpenAI keys, GitHub PATs,
   AWS keys, private-key blocks, hardcoded passwords/tokens/secrets.
-- **dockerfileScanner.js** — `FROM image:latest`, untagged base images,
+- dockerfileScanner.js — `FROM image:latest`, untagged base images,
   dangerous `RUN` commands.
-- **ciScanner.js** — `curl|wget` piped to a shell, `npm install` in CI
+- ciScanner.js — `curl|wget` piped to a shell, `npm install` in CI
   when `package-lock.json` exists, unpinned action references
   (`@main`, `@master`, `@develop`), missing build/test step.
-- **packageJsonScanner.js** — invalid JSON, destructive scripts (`rm -rf /`,
+- packageJsonScanner.js — invalid JSON, destructive scripts (`rm -rf /`,
   `eval`, `curl|sh`), missing `test`/`build` scripts where relevant.
 
 Each finding is normalised to the issue schema described below.
 
 ## How dynamic analysis works
 
-Dynamic analysis runs **only inside Docker** with hardening enabled:
+Dynamic analysis runs only inside Docker with hardening enabled:
 
 - `--read-only` root filesystem, writable `tmpfs` for `/tmp` and `/work`
 - `--cap-drop ALL`, `--security-opt no-new-privileges`
@@ -77,15 +77,15 @@ Dynamic analysis runs **only inside Docker** with hardening enabled:
 
 `projectDetector.js` decides what runner to use:
 
-- **Node.js** (`node:20-alpine`): copies repo to `/work`, runs
+- Node.js (`node:20-alpine`): copies repo to `/work`, runs
   `npm ci --ignore-scripts` (or `npm install --ignore-scripts` if no lockfile),
   then `npm run build` if a build script exists, then `npm test` if a real
   test script exists, then `npm start` (backgrounded) and probes ports
   3000, 5173, 8080 over HTTP.
-- **Python** (`python:3.10-slim`): runs `python -m compileall .`, installs
+- Python (`python:3.10-slim`): runs `python -m compileall .`, installs
   `requirements.txt` if present, and (if a Flask app is detected) starts
   `python -m flask run --host=127.0.0.1 --port=5000` and probes that port.
-- **Unknown**: skipped, with a medium-severity issue raised so a human
+- Unknown: skipped, with a medium-severity issue raised so a human
   reviewer is asked to confirm.
 
 If dynamic analysis times out, `dynamic_analysis.status = "timeout"`, a
@@ -96,20 +96,20 @@ medium-severity issue is raised, and the decision agent maps that to
 
 Four agents process the data sequentially:
 
-1. **securityAgent** counts static findings by severity and emits
+1. securityAgent counts static findings by severity and emits
    `security_status` (`ok`/`warning`/`critical`) and `risk_level`
    (`low`/`medium`/`high`/`critical`).
-2. **buildTestAgent** maps the dynamic result to a `pipeline_status`
+2. buildTestAgent maps the dynamic result to a `pipeline_status`
    (`stable`/`warning`/`failed`).
-3. **fixSuggestionAgent** annotates every issue with `fix.available`,
+3. fixSuggestionAgent annotates every issue with `fix.available`,
    `fix.safe`, and a strategy. Only a small, conservative set of fix types
    is allowed to be safe-and-available.
-4. **decisionAgent** applies the rules:
-   - any critical/high open issue → **block**
-   - failed build or tests → **block**
-   - timeout or skipped dynamic analysis → **manual_review**
-   - any medium issue still open → **manual_review**
-   - otherwise → **deploy**
+4. decisionAgent applies the rules:
+   - any critical/high open issue = block
+   - failed build or tests = block
+   - timeout or skipped dynamic analysis = manual_review
+   - any medium issue still open = manual_review
+   - otherwise = deploy
 
 Ignored or fixed issues drop out of the decision input but stay visible in
 the UI.
@@ -128,9 +128,9 @@ the UI.
 
 Allowed safe auto-fixes:
 
-- **Committed `.env`** — file removed from the temporary copy, `.env`
+- Committed `.env` — file removed from the temporary copy, `.env`
   added to `.gitignore`.
-- **`npm install` in GitHub Actions** — replaced with `npm ci`, only if
+- `npm install` in GitHub Actions — replaced with `npm ci`, only if
   `package-lock.json` is still present in the working copy.
 
 Hardcoded secrets, Dockerfile base images, dangerous npm scripts, build
