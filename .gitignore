@@ -1,5 +1,5 @@
-/diploma-security-analyzer/node_modules/
+/security-analyzer/node_modules/
 .env
 .gitignore
-/diploma-security-analyzer/node_modules/body-parser/node_modules/qs/.editorconfig
+/security-analyzer/node_modules/body-parser/node_modules/qs/.editorconfig
 .idea

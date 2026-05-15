@@ -28,7 +28,7 @@ let lastResult = null;
 function authHeaders() {
   const h = {
     Accept: 'application/vnd.github+json',
-    'User-Agent': 'diploma-security-analyzer',
+    'User-Agent': 'security-analyzer',
     'X-GitHub-Api-Version': '2022-11-28',
   };
   if (process.env.GITHUB_TOKEN) {
